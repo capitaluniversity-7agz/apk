@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>نظام حجز المعامل - هندسة العاصمة</title>
+    <meta name="theme-color" content="#003080">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="حجز المعامل">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+:root {
+    --navy: #001f4d;
+    --navy-mid: #003080;
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --white: #ffffff;
+    --bg: #f0f4fb;
+    --success: #0d9e6e;
+    --danger: #e03030;
+    --waiting: #2980d9;
+    --card-shadow: 0 8px 32px rgba(0,31,77,0.10);
+    
+    --text-main: #1a2a3a;
+    --card-bg: #ffffff;
+    --input-bg: #f8fafd;
+    --border-color: #e8edf5;
+}
+
+body.dark-mode {
+    --navy: #e2e8f0;
+    --navy-mid: #94a3b8;
+    --white: #1e293b;
+    --bg: #0f172a;
+    --text-main: #f8fafc;
+    --card-bg: #1e293b;
+    --input-bg: #0f172a;
+    --border-color: #334155;
+    --card-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* ===== HEADER ===== */
+.hero {
+    background: linear-gradient(160deg, #001233 0%, #003080 60%, #00488a 100%);
+    position: relative;
+    overflow: hidden;
+    padding: 30px 20px 60px 20px;
+    color: white;
+}
+
+.hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,168,76,0.18) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 60px;
+    background: var(--bg); clip-path: ellipse(55% 100% at 50% 100%); transition: background-color 0.3s;
+}
+
+.desktop-header {
+    position: relative; z-index: 2; display: flex; flex-direction: row; align-items: center; justify-content: space-around; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; gap: 20px;
+}
+
+.logo-ring {
+    width: 120px; height: 120px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px rgba(201,168,76,0.7), 0 0 0 8px rgba(201,168,76,0.2); padding: 0; overflow: hidden;
+}
+.logo-ring img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+
+.header-welcome { text-align: center; }
+.hero-tag { display: inline-block; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 0.85rem; font-weight: 700; padding: 5px 15px; border-radius: 20px; margin-bottom: 5px; }
+
+.header-title h1 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; line-height: 1.2; margin: 0; text-align: center; }
+.header-title h1 span { color: var(--gold-light); }
+
+.header-subtitle { text-align: center; font-weight: 600; font-size: 1.1rem; line-height: 1.4; color: rgba(255,255,255,0.9); }
+.header-subtitle-en { font-size: 0.85rem; color: rgba(255,255,255,0.6); letter-spacing: 0.5px; }
+
+.stats-bar { display: flex; justify-content: center; gap: 15px; }
+.stat-item { text-align: center; padding: 0 15px; border-left: 1px solid rgba(255,255,255,0.2); color: #fff !important;}
+.stat-item:last-child { border-left: none; }
+.stat-num { font-size: 1.6rem; font-weight: 900; color: var(--gold-light) !important; display: block; }
+.stat-lbl { font-size: 0.8rem; opacity: 0.9; color: white !important;}
+
+@media (max-width: 900px) {
+    .desktop-header { flex-direction: column; text-align: center; }
+    .stat-item { border-left: none; border-bottom: 1px solid rgba(255,255,255,0.2); padding: 10px 0; }
+    .stat-item:last-child { border-bottom: none; }
+    .stats-bar { flex-direction: row; gap: 20px; }
+    .stat-item { border-bottom: none; border-left: 1px solid rgba(255,255,255,0.2); padding: 0 15px; }
+}
+
+.dark-mode-btn { position: absolute; top: 15px; left: 15px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+.dark-mode-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.1); }
+
+.credits-pill { background: var(--card-bg); border-radius: 50px; padding: 10px 24px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-main); font-weight: 700; box-shadow: var(--card-shadow); margin: -28px auto 0; position: relative; z-index: 10; border: 1px solid var(--border-color); }
+.credits-pill i { color: var(--gold); }
+.credits-pill b { color: var(--navy-mid); }
+
+/* ===== MAIN ===== */
+.page-wrap { max-width: 600px; margin: 0 auto; padding: 36px 16px 60px; }
+
+.section-label { font-size: 0.75rem; font-weight: 900; letter-spacing: 1px; color: var(--navy-mid); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-color), transparent); }
+
+.card { background: var(--card-bg); border-radius: 24px; padding: 28px 24px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); margin-bottom: 20px; animation: slideUp 0.5s ease both; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.field { margin-bottom: 18px; }
+.field label { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 0.9rem; color: var(--navy); margin-bottom: 8px; }
+.field label i { width: 28px; height: 28px; background: rgba(0,48,128,0.07); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--navy-mid); }
+.inp { width: 100%; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 12px; font-size: 0.95rem; font-family: 'Cairo', sans-serif; outline: none; background: var(--input-bg); color: var(--text-main); transition: 0.3s; }
+.inp:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,168,76,0.12); }
+.hint { font-size: 0.75rem; color: #25D366; margin-top: 5px; font-weight: 600; }
+
+/* Student Dashboard Widget */
+.dashboard-widget { background: linear-gradient(135deg, rgba(13,158,110,0.1) 0%, rgba(41,128,217,0.1) 100%); border: 1px solid var(--success); border-radius: 20px; padding: 20px; margin-bottom: 24px; display: none; }
+.dash-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.dash-icon { font-size: 1.8rem; color: var(--success); }
+.dash-title { font-weight: 900; color: var(--text-main); font-size: 1.1rem; }
+.dash-subtitle { font-size: 0.8rem; color: var(--navy-mid); font-weight: 700; }
+.dash-items { display: flex; flex-direction: column; gap: 8px; }
+.dash-item { background: var(--card-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.dash-item-info { flex: 1; }
+.dash-item-name { font-weight: 800; font-size: 0.95rem; color: var(--navy); }
+.dash-item-device { font-size: 0.8rem; color: var(--danger); font-weight: bold; margin-top: 2px; }
+.dash-item-date { font-size: 0.75rem; color: #8899aa; margin-top: 4px; }
+
+/* Labs */
+.labs-wrap { display: none; }
+.search-bar { position: relative; margin-bottom: 20px; }
+.search-bar i { position: absolute; right: 16px; top: 16px; color: #8899aa; }
+.search-bar input { padding-right: 40px; }
+
+.labs-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px dashed var(--border-color); }
+.labs-header h4 { font-size: 1rem; font-weight: 900; color: var(--navy); flex: 1; }
+.labs-count { background: var(--navy); color: white; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+
+.lab-tile { background: var(--input-bg); border: 1.5px solid var(--border-color); border-radius: 18px; padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; gap: 14px; align-items: center; position: relative; overflow: hidden; transition: 0.3s; }
+.lab-tile::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 5px; background: var(--success); }
+.lab-tile.full::before { background: var(--waiting); }
+.lab-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--gold); }
+.lab-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; background: rgba(0,48,128,0.05); color: var(--navy-mid); }
+.lab-info { flex: 1; }
+.lab-name { font-weight: 900; font-size: 0.95rem; color: var(--navy); margin-bottom: 4px; }
+.lab-time { font-size: 0.8rem; color: #8899aa; display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+.lab-progress-bar { height: 5px; background: var(--border-color); border-radius: 10px; overflow: hidden; }
+.lab-progress-fill { height: 100%; background: linear-gradient(90deg, var(--success), #34d399); transition: width 0.4s; }
+.lab-tile.full .lab-progress-fill { background: linear-gradient(90deg, var(--waiting), #60b0f8); }
+.lab-capacity { font-size: 0.72rem; color: #8899aa; margin-top: 4px; }
+.status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.badge-available { background: rgba(13,158,110,0.1); color: var(--success); border: 1px solid rgba(13,158,110,0.2); }
+.badge-waiting { background: rgba(41,128,217,0.1); color: var(--waiting); border: 1px solid rgba(41,128,217,0.2); }
+
+/* Cancel */
+.cancel-section { margin-top: 20px; background: rgba(224,48,48,0.05); border: 1.5px dashed rgba(224,48,48,0.2); border-radius: 16px; padding: 18px; }
+.cancel-section h5 { font-size: 0.88rem; font-weight: 700; color: var(--danger); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.cancel-row { display: flex; gap: 10px; }
+.btn-cancel { background: var(--danger); color: white; border: none; padding: 12px 18px; border-radius: 12px; cursor: pointer; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 0.85rem; white-space: nowrap; transition: 0.2s; }
+.btn-cancel:hover { opacity: 0.9; transform: translateY(-2px); }
+
+/* ===== ADVANCED ADMIN SIDEBAR DASHBOARD ===== */
+.admin-sidebar-btn {
+    position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+    background: var(--navy-mid); color: white; border: none;
+    padding: 15px 10px; border-radius: 10px 0 0 10px; cursor: pointer;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.2); z-index: 1000;
+    writing-mode: vertical-rl; font-family: 'Cairo'; font-weight: 700; letter-spacing: 2px;
+}
+.sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10001; display: none; backdrop-filter: blur(3px);
+}
+.sidebar-dashboard {
+    position: fixed; top: 0; right: -400px; width: 350px; height: 100vh;
+    background: var(--card-bg); z-index: 10002; box-shadow: -5px 0 30px rgba(0,0,0,0.3);
+    transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex; flex-direction: column; border-left: 1px solid var(--border-color);
+}
+.sidebar-dashboard.open { right: 0; }
+.sidebar-header {
+    background: linear-gradient(135deg, var(--navy), var(--navy-mid)); color: white;
+    padding: 20px; display: flex; justify-content: space-between; align-items: center;
+}
+.sidebar-header h3 { margin: 0; font-size: 1.2rem; font-weight: 900; }
+.close-sidebar { cursor: pointer; font-size: 1.2rem; }
+.sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
+.admin-stat-cards { display: flex; gap: 10px; margin-bottom: 20px; }
+.admin-stat-card { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; }
+.admin-stat-card h4 { margin: 0; font-size: 1.8rem; color: var(--gold); }
+.admin-stat-card p { margin: 5px 0 0; font-size: 0.75rem; color: var(--text-main); font-weight: 700;}
+.admin-list-title { font-size: 0.9rem; font-weight: 800; color: var(--navy); margin-bottom: 10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;}
+.admin-booking-item { background: var(--bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.8rem; }
+.admin-booking-item b { color: var(--navy-mid); }
+.sidebar-footer { padding: 15px; border-top: 1px solid var(--border-color); background: var(--input-bg); }
+.btn-export { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #1a7a40, #27ae60); color: white; border: none; border-radius: 12px; font-family: 'Cairo'; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(39,174,96,0.3); transition: 0.3s; }
+.btn-export:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(39,174,96,0.4); }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(5px); padding: 20px; }
+.modal-box { background: var(--card-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--border-color); animation: pop 0.3s ease; }
+@keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-icon { font-size: 60px; margin-bottom: 10px; }
+.modal-icon.success { color: var(--success); } .modal-icon.warning { color: #e08020; } .modal-icon.confirm { color: var(--navy-mid); }
+.modal-box h2 { font-size: 1.5rem; color: var(--navy); margin-bottom: 10px; font-weight: 900; }
+.modal-box p { color: var(--text-main); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.6; }
+.modal-btns { display: flex; flex-direction: column; gap: 10px; }
+.btn-m { padding: 12px; border-radius: 12px; font-size: 0.95rem; font-weight: 800; cursor: pointer; border: none; font-family: 'Cairo'; text-decoration: none; }
+.btn-navy { background: var(--navy-mid); color: white; }
+.btn-navy:hover { background: var(--navy); }
+.btn-gray { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+.btn-calendar { background: #4285F4; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* Chatbot */
+.chat-widget { position: fixed; bottom: 20px; left: 20px; z-index: 9999; }
+.chat-btn { width: 60px; height: 60px; background: var(--navy-mid); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.chat-win { position: absolute; bottom: 75px; left: 0; width: 300px; height: 450px; background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: none; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); }
+.chat-hdr { background: var(--navy); color: white; padding: 15px; display: flex; align-items: center; justify-content: space-between; }
+.chat-msgs { flex: 1; padding: 15px; overflow-y: auto; background: var(--input-bg); display: flex; flex-direction: column; gap: 10px; }
+.msg { padding: 10px 14px; border-radius: 15px; font-size: 0.85rem; max-width: 85%; line-height: 1.5; }
+.bot-msg { background: var(--card-bg); align-self: flex-start; border: 1px solid var(--border-color); }
+.user-msg { background: var(--navy-mid); color: white; align-self: flex-end; }
+.chat-opts { padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; background: var(--card-bg); border-top: 1px solid var(--border-color); }
+.opt-btn { background: var(--input-bg); border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; cursor: pointer; font-family: 'Cairo'; font-weight: 700; color: var(--navy); }
+.chat-foot { padding: 10px; display: flex; gap: 5px; background: var(--card-bg); border-top: 1px solid var(--border-color); }
+.chat-foot input { flex: 1; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 20px; font-family: 'Cairo'; background: var(--input-bg); color: var(--text-main); outline: none; }
+.chat-foot button { background: var(--gold); border: none; color: white; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; }
+.dev-list { list-style: none; margin: 5px 0 0; padding: 0; }
+.dev-item { font-weight: bold; font-size: 0.8rem; color: var(--navy-mid); margin-bottom: 3px;}
+
+.site-footer { text-align: center; padding: 20px; color: #889; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<!-- Dark Mode Toggle -->
+<button class="dark-mode-btn" onclick="toggleDarkMode()">
+    <i class="fas fa-moon" id="themeIcon"></i>
+</button>
+
+<!-- Admin Sidebar Button -->
+<button class="admin-sidebar-btn" onclick="toggleSidebar()">لوحة الإدارة <i class="fas fa-sliders-h" style="transform: rotate(90deg); margin-top: 5px;"></i></button>
+
+<!-- ===== HERO HEADER ===== -->
+<header class="hero">
+    <div class="desktop-header">
+        <div class="header-logo">
+            <div class="logo-ring">
+                <!-- استبدل الصورة بـ logo.png كما اتفقنا -->
+                <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAD7AMkDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAUHBAYIAwIB/8QATBAAAQMDAwICBAkGCA8BAAAAAQACAwQFEQYHEiExE0EIFCJRFSMyOEJhcXWRUmJ0gbGzFhcYJENzobIlJigzN0VGVWOCg5KitNLB/8QAGgEBAQADAQEAAAAAAAAAAAAAAAQCAwUBBv/EADIRAAIBAgQDBQgCAwEAAAAAAAABAgMRBBIhMUFRYRNxkaHBIjJygbHR4fAFUmKCwvH/2gAMAwEAAhEDEQA/AOvUREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBEWBeb1Z7LB494u1BbYsZ51dQyIfi4hepNuyPG0tzPReUNTTzUbKyKeOSmfGJWytcCxzCMhwPYjHXKjtP6l07qGPnYb9a7o3Gf5nVxzYH/KSlna4uiWREXh6EREAREQBERAEREAREQBERAEREAREQBERAFF6o1BZ9MWOovV9r4aGhp25klkPn5NaB1c4+TQCT5LOrqqmoaKetrJ46emp43SyyyHDWMaMlxPkAASuZrTQ3P0i9wZbxdfWKTb6yzGOlp2uLHVLvd7w9w6ud3Y0ho6kuVFCip3lN2it/suporVXC0Yq8nsZ0mvd1t4ayeh21oDprTjHmOS71J4SPx+fg4P5sYLh0y4ZU1YfRl0qJXV+r75eNSXGXrNI6UwsefeepkP2l6u+20NHbaCC32+lhpKSnYI4YYWBjGNHYADoAv2vqY6OjkqZSAyMZOTjzwO/14WU8a4J9l7MfP5swjhVJ3qe0/LwPmmoaWmtcVsgjLKWKAQMZyJwwN4gZPXt5qltQ+jJoaqDZ9PV930/WR9YZI5zOxjvIkPPPp9TwrXtN4r7jbmXGC1sNM8uAaKj41wa4ty1pbxOcZHtdRg+eFK09VBUUraqKUGFwzyPTHXBBB7EHoQeoPRS4fGte1Sk1fXv8dzfVw8Zq01sc41F/wB5NlJmO1ODrbSDHBrq1ri6aBvbq8+0w/1nJp6AOGVemgdZWDXFgjvWnqwVFOTxljcOMsD/AMiRv0Xf2EdQSDlTs0cc8L4Zo2SRSNLXse0Frge4IPcLmjcfTFx2L1nFuRoWJx0zVSCK7WvkeEYcfkj3MJPsH6DsD5LuKui4Yr2bWnw5P8k0s+H1TvHzX4OmkUdpq9W7UVgor5aZxPQ1sLZoX4wcHyI8iDkEeRBCkVE007MrTTV0ERF4ehERAEREAREQBERAEREAREQBERAUd6Xuoa2DSdq0RaCTcdT1jacMa7DnRtc32cjtye6Nv1jkFae3+maHR2jrZpu3tHhUUAY54GDLIer5D9bnEn9apnXrTefTN0bbZjzprfbvHDD2a9rKiUO+0uEf4BdAVE0VPBJPO8RxRtL3uPZrQMklV4h9nRhDpmf73IlorPVnP5ENWVslXqQWXNRBDFEJZXR8muk5A49sfJaMEEggl2B2Bz8T2xsl3ZDTVtbC2mYKh5dUOlHNxIj6ScgR7Mh9+Q0r8mFdPd4KqV8tvpatngcY8eKS3LmcyQQwHL+g654jOTga/WwWouudfUUUddQxVbYYBK8yy1UjWM9jk/JEbXBxPX2uv0ejvnKtSybkr68dNLX8Nv8A1nSjG9rEudSTB/gOqaHweXA3P+iz/V5z9XLlw88/RX1JZIZLjJSzXKvf65F6wyVswbiRhaHkMA8PqHM7tPZx88rT7xqHUltPrZs9k9Wzk05pcDHn7We+PP6v1LPsb7HW0lqvlBSx0lumqjHUNYfDlo5Cx44B7MExlxae449D0b0bHDHQrzdOWrXO602v3a77rd9Nroygs23d+/g3K3UxtFXS26CaaWifA4MbNIXujcziOhPXBBPTsOPTGVlX210F8s1ZZ7pAJ6KthdBPGfpMcMH7D7j5FQdZPPba+e4NmfVUVuYIZGzOyWGRzC/DgMkMaGE8s9HO6jC2C2VkVwt8NbCCI5m8m5Xaw1WKk6cdGtl0206XJZxbV2UN6K1fXab1Lqzaa7TmSWz1L6iiLuhdGXcXkDyBzE8D/iOXQS57v5Nk9NyxyU7Qxt6tP85x9P4mdg/tp4/wXQi6uM1mp/2Sfz4keF0i4f1bQREUhSEREAREQBERAEREAREQBERAEREBz9dfnv2n7nd/68yvLUMc8tlqm0sPjz8Q5keQOZBBx1IHl5kZ94VG3TH8t+04/wBzn9xMugVTjo54Qjzj9ybCu0pv/J+hrc1ab7a4rY4Ppaypkc2dgOJaZjHZ54+i7HDB8i9pGQFCXFtT8GVMIii9btFc2SWCJvQxGJoD2N8hgg48sOHUhbPPRU9VqSR8zHNkjpI/Alje5jxl7+YBGOnRmR9ijprRWi+SR092dHM6Ns8E80DXv5D2JB7JYC3HhZBznv3AI+dr0JzWur2v0XfbW+q4PbQ6UJpPQ0LXGsKGutYhYWjLcANOeQ+z9akdvbfW23R1HR1EUYrrrcTNT087SAGCPBc8Y+ThpOPMEDuVMBrHXrwTadOfDQl4iT1L2Ae/LxOXysdeOOf1Y9pSkdruD77C2pu4fM1jqiWaClax4OCyNvtl4DcOlwMfRJ6kknl0MFUliHXnLM/d0VrX33e/ThuyidaOTIlbiZVpmp7FSzW2qmLjTuBhcfalqWyEkHA+U8uDwQOp4581J2aCWnt7WztDJXySTPYDkMMj3PLc+eOWM+eFDCOOj1vSwx0tRI+SjeTUyPdIXAvHIEnPEN4t6dAfE6DutlX0OFV7r+un7++JFP6nPm5nzzNAfdTf71Yug1z7uZ88vQH3U3+9WLoJdfFe7T+H1ZDh/en3+iCIikKgiIgCIiAIiIAiIgCIiAIiIAiIgOf7oM+m/afLFmd+v4iZdAKgbp8960/crv3Eyv5V4ran8K9SbDbz+J+hg3i2x3GDiZHQzNB8OZnym57gjs5p82nofwUVJpt8Vsgjjr6urmpBmJssvhsf+Uw8ADxcOnXkB06HGFsaLm1MNTqNtrUrU2tjW7td6Cmsb447S+Xh7LqB9OW4wM4wGkEe4jIJIwfNe1mtFRHCas11bR1FT7ckTXMkEY68Y8yNccNB94Gc4ABwp4EgYBKLBYa8803e22lrep7n0sjFoqJlM98rpZqiokAD5pSC4gZwAAAAOp6AAdz3KykRURioqyMG7nPu5nzytv8A7qH96sXQS5+3M+eVt8ffawP/ACrF0CrcV7tP4fVkuG96ff6IIiKQqCIiAIiIAiIgCIiAIiIAiIgCItK3I3BptFXbTtuqLRXV7r7VGmjkp8cYSHRty/Pl8Znp+SVlCEpvLHcxlJRV2VrdPnvWn7ld+4mV/qgLkD/LftRPb4Gd+4mV/qnFbU/hXqaMNvP4n6FE0e5nibnt0v8ADOriRqyam5utdMKNzQzj6n4gdy4AjmHY54PUea3y77mW+37kxaEbp/UNdXP8AyVNHSCWngZM7i18jg7LGDPVxGAoa87DaBu19rLzVC8tqqyrfWS+DcHsaJXnJc0DsvAej5t+2odUNm1G2ZzeLpPheTkR7ie+Fsk8LKz125cfEwUcQr7b+Rk6y3ssGltaVml62xagqZqOSnjnqaanY6BhmDSzk4vHHPLHUdSDjKi9Aa/vFFpfW15vNJftSm36xrLdS01vpRPNHAC3g0NGPZbk9T71ls9HvbtlY2rxfHyh7HkyXN7uRYct5Z74+tZNdsVoWruldcXy36CWuqpKucQXSSNniSOLnEAfWUzYVRyq/Dh+RlxF7uxiRb6W5tfb6S4aC1zaxX1kVFBPXWxsMRlkdxALnPH24GTgFW4qU0Hs1pmtpLfe7zQ3aiudFXGeOl/hA6tiY6KUmJ/IdDloa7HlywVda0Yjsk0qfzNtDtLXmc/7m/PI29+7B+2rXQCoDc0f5Ym3hA/1b1/GrVk6c3FoL3uffdBw26qiq7ND4stS9zTHIMsGGgdfpjv7ltxEJSjBpbR9Wa6ElGU0+MvRG7IiKIrCIiAIiIAiIgCIiAIiIAiIgCqzfW71Nnu2k6lu4VJpKjbVSSVkM7Xn4Qja6IuYOLT2byHXH+cVprm/00Z6Slu+39VcKZ1TRQ1lRJUwtAJliDqcvZ1x3bkKrBQU6yi+v0fMmxc8lJy7vqedo1HY9VemTarrp64xXCh+CZI/GjBA5NgmyOoB8wrbuW722ttuNVbq/V9BT1dJM+CeJzZMskY4tc04b3BBC5bs24+iLBvjRa00/pe4W2wU1G+I0MUUYlMjo3tLgOfH6Q+l5KMsmtNBu1Rrm9ao0pV3Zl8qp6i1ZiY51I6SSV2X5eMH22Z45+SfqXTqYHPZtOyiuV9znwxmROzV233bHZMW4GjZdIz6tjv9M6xU8ohlrQHcGvLmtA7Z+U5o7ealP4QWQaZGpnXOnZZjTCqFY93GPwiMh+T5EEfiuIbduJaaf0d7ntq6hrn3OsrW1LKkBvgNaJopCD15ZxGR28ws3Wu6Vtv+2uidHQUN0jZY/Vxc2ScRDVtjY1uAA7r1DiOQHf3rS/4qV7K+78OZtX8lG13bbzOoxvXtWf8AbW3/APbJ/wDKlbBrzSGr4LjTaavtNc5aemc+ZkQcCxpBAJyB5rnL+Mr0e84/iirif0aDP71Svot1lpuO5Ov6+xW51ttc9DzpaVzQDDGXnDcAkfgSsKmCjCnKeWStztzM4YuUpqN078rkz6G92tWndir5eLtVRUVBT32R08zmnizMFK0E4Ge5AVlfx17V9P8AHS39fzZP/lcl6Q3Dtlq2B1Ft9Nb6+Svu1d6zDUMa3wWNxT9HEu5Z+Jd2B7j9Wx6N19stbNK2ygvm2NRcrtT07WVdW2GP42Qd3ZMgP9gVNfA56kpyTd3wtsaKWMyxjBNbcblp7ndPTE28+7f/ANq1+7V/O33G/Qx+2BabQ7hW3cn0otDXu12+uoYaaB1K9lWGci4NqH5HEkYw8Lctq/nb7jfoY/bAtdSDhTyyWqh/0bISU5qUds/oX8iIuMdQIiIAiIgCIiAIiIAiIgCIiAKp/SC3Jv8AoCq01S6ftFDc6i8zTQiOp555tMQYG8SOpMhHX6lbC509MW4wWfUm212qWvfDRXGapkYzHJzY30ziG5IGcD3hVYKEaldRkrrX6Mmxc3Ck5J22+pt+22sN37vq+loNW7eUtms8jJDNWMJywhhLR1ee7gB2Wn129e5tVq/VVp0xoi13Wm0/XVEE0o8TkyKOWRjXv9sdSIyenuK3Lbnf3SWu9X02mbTab9T1dSyR7JKqKERgMYXnJbK49gfJUdZbTry67k7tO0PqOls8dNcqx1zbOcesRePUYaPi39Rh/u791bSorNLtYKNkt7238SWrVajHs5t3b2tfYti3byXup9Hi57lPtNrFwpK5tMymAf4JaZoo8n2uWcSE9/ILWDvtuhSx2Ctu+h7RRWy9zRMo6p3iFsrXlvVvtn6LgeoWs2Qj+QzfyMYN3j/9umUhpfaXdPV+ldGXCr1bZJ7FRx01ZbqOZ8jXQRYaQ32YflcQB1cft81tVGhDNnStma1vyWxr7WtJRyt3snpbnxLi1DuJc7b6Qti22ioKF9uuNE6okqXB3jNIZUOwMHGMwt8vMrTN2d39zNDaiqIHaJtnwPLWuprbWT881OOo+S/vj6gvnWzmn04dGnI62h3T/pVq9fTQP+AtHjyN7H9xT0qdNVKcXG+Zfc31JzcJtStZ/Y2N+v8AXto2Z1DrDVek6O0Xq21IZTUT+RjlhJhAecPJ7ySDuPk/jW9z3+3Ttun7ff7hoOz09puLg2jqX+JwmJBcMASZ7Ansrc9J7/QXqn+pi/fxrlbXdo15RbO6Pul91JSVmmamSP4LoGE+JTExvILvix9EOHynd/w2YKnSqrNKK1fXlwNWLqVKbtFvRdOfE6k1huFcrLvtpfQFPb6GShvFL401Q8O8VhzN0bg4x8UO48ytN2r+dtuN+hj9sChfSL1LQaO9JbRmprlFUTUtBavEljpw0yOBfUtHEOIHdw7kLb9kdbba613Fvdz0rpy70GoKmjM1fV1hbxmjD424AbM8A54dmjt39+t0nToZ1HRx1fW5tVRTq5XLVS8rF0oiLlnQCIiAIiIAiIgCIiAIiIAiIgC0ndLVk+l6nScMFBTVbb1f6e1ymbPxTJc5e3H0unn0W7LTt1NGVGsbfZ/ULq213GzXWG6Uc8lP40Zkjzhr2cmktPLyIPQLZRy51n2NdVScHl3NPduncIdltQ6/bZLcKy1XOSiip2lwY9raiOHkT3zh5PT3LO2q3LqdZXO/QPtVJSR2+1UNYOBdzMs8JfLG/P5D2ub7+nVfM20UkmyF026OoW+t3OodVT3I0fs+K6obMSIufQeyG45fX9SkNBbXw6S1NrG7011E0Ooy1zKb1fh6qfjC72uR5AukJAw3HZUyeHyStvfTfbT8k6jWzx5W179fwQVFujdJtn9Ja5NjtwZd7vFSXGEF3CCF874vEb+cCxvfpk/YvV+6l4ZtNq7XDLPQhtnuk1HbouT+NRCyZkXN31+07t09lZ9NtO2PYaPa+W+B8kTPi7k2lLeMgqfHa8R8yehwMcuvv6r0ftU07FSbYsvYa+VhEtyNLnlI6fxnP8Pn5nIxy6e9et4e/wDt192/71Fq1vl5mLYtw7pXbUak1tUDSldV2mCWWnZaK19RFlkIk4SuIBa/LuoHkQvnZLcu57g3KuoLpabSI6ahpqxtXbqh00LXTN5eA/kPZlb2cM9CHDyyZSh0Deztxf8AR931NQ1brpTPpoKqmszKUU7XR8Muja/4w+eSQfJee2W2I0VqKW6Q3SGaKayUVtlgipPB5S07GsM5IcQS7BOCMjPcrGToZJrjw36fkySq5ovhxIfZ7dC9a/1BNTVFqssFvaJ/FpmVh9foXxycWtnhfguDh5sGAeh65AldL6w1Dqi362htdos5uGn73NbKCOoe5sUzY3AcpCASDxz2HfCw9IbUXO2bi0esb7q5t6qKCGeGB4traeoqBJkA1MjXESlrXYHst7D3LZtvNFu0nV6qndcm1gv16nujQIPD8ASf0fyjyx7+mfcEqOgm3Hpbfnr5CEarspdTVdt9c6x1pthdNZO05ZWzCCR9ogjke81Doy8PY8Hq3JaA3B81k7HbiVu401xr4bNSUNoo4KWITsJ8SWqfE188Yz04sccZ8wWlbHs/o123+gbfpZ1yFyNI6V3rAg8Hnzkc/wCTydjHLHfyX5tToz+AunKm0fCDa8z3Cet8UQeFjxXA8ccnZxjGc9fcF5UnR9vKuOm+379T2EKl4XfDXvNuREUhSEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREB//9k=">
+            </div>
+        </div>
+        <div class="header-welcome">
+            <div class="hero-tag">⚙️ منصة إدارة المعامل</div>
+            <p style="margin:0; font-weight:600; color:rgba(255,255,255,0.9);">أهلاً بك في</p>
+        </div>
+        <div class="header-title">
+            <h1>نظام حجز <br><span>المعامل</span></h1>
+        </div>
+        <div class="header-subtitle">
+            <div>كلية الهندسة — جامعة العاصمة</div>
+            <div class="header-subtitle-en">Faculty of Engineering · Capital University</div>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item"><span class="stat-num">8</span><span class="stat-lbl">معمل</span></div>
+            <div class="stat-item"><span class="stat-num">20</span><span class="stat-lbl">سعة المعمل</span></div>
+            <div class="stat-item"><span class="stat-num">3</span><span class="stat-lbl">فرق دراسية</span></div>
+        </div>
+    </div>
+</header>
+
+<div style="text-align:center; margin-bottom: 32px;">
+    <div class="credits-pill" style="direction:ltr; unicode-bidi:isolate;">
+        <i class="fas fa-code"></i> <span>Developed by:</span> <b>Sayed Sedeek</b> · <b>Abdallah</b> · <b>Omar</b>
+    </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="page-wrap">
+
+    <!-- لوحة تحكم الطالب (تظهر للطالب بعد الحجز) -->
+    <div id="studentDashboard" class="dashboard-widget">
+        <div class="dash-header">
+            <i class="fas fa-user-check dash-icon"></i>
+            <div>
+                <div id="dashName" class="dash-title"></div>
+                <div id="dashID" class="dash-subtitle"></div>
+            </div>
+        </div>
+        <div style="font-size: 0.85rem; margin-bottom: 8px; font-weight: bold; color: var(--navy);">معاملك المحجوزة:</div>
+        <div class="dash-items" id="dashBookingsList"></div>
+    </div>
+
+    <!-- بيانات التسجيل -->
+    <div class="section-label"><i class="fas fa-user-graduate"></i> بيانات التسجيل</div>
+    <div class="card">
+        <div class="field">
+            <label><i class="fas fa-user"></i> الاسم رباعياً</label>
+            <input type="text" id="stdName" class="inp" placeholder="أدخل اسمك بالكامل">
+        </div>
+        <div class="field">
+            <label><i class="fas fa-id-badge"></i> الكود الأكاديمي</label>
+            <input type="number" id="stdID" class="inp" placeholder="أدخل كود الطالب">
+        </div>
+        <div class="field">
+            <label><i class="fab fa-whatsapp"></i> رقم الواتساب</label>
+            <input type="tel" id="stdPhone" class="inp" placeholder="01XXXXXXXXX" style="direction:ltr; text-align:left;" oninput="autoSendWhatsApp(this.value)">
+        </div>
+        <div class="field">
+            <label><i class="fas fa-calendar-alt"></i> تاريخ الحجز</label>
+            <input type="date" id="bookingDate" class="inp">
+            <div class="hint"><i class="fas fa-info-circle"></i> يرجى اختيار تاريخ المعمل</div>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 20px 0;">
+        
+        <div class="field">
+            <label><i class="fas fa-graduation-cap"></i> الفرقة الدراسية</label>
+            <select id="stdYear" class="inp" onchange="updateDepts()">
+                <option value="">— اختر الفرقة —</option>
+                <option value="prep">🎒 إعدادي</option>
+                <option value="1">📘 أولى</option>
+                <option value="2">📗 ثانية</option>
+            </select>
+        </div>
+        <div class="field" id="deptGroup" style="display:none;">
+            <label><i class="fas fa-microchip"></i> القسم العلمي</label>
+            <select id="stdDept" class="inp" onchange="filterLabs()"></select>
+        </div>
+    </div>
+
+    <!-- المعامل المتاحة -->
+    <div id="labsWrap" class="labs-wrap">
+        <div class="section-label"><i class="fas fa-flask"></i> قائمة المعامل</div>
+        <div class="card">
+            
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchLabInput" class="inp" placeholder="ابحث عن معمل..." onkeyup="searchLabs()">
+            </div>
+
+            <div class="labs-header">
+                <h4>اختر المعمل المناسب</h4>
+                <span class="labs-count" id="labsCount">0 معمل</span>
+            </div>
+
+            <div id="labsList"></div>
+
+            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 20px 0;">
+
+            <!-- إلغاء -->
+            <div class="cancel-section">
+                <h5><i class="fas fa-times-circle"></i> إلغاء حجز سابق</h5>
+                <div class="cancel-row">
+                    <input type="number" id="cancelID" class="inp" placeholder="أدخل كودك للإلغاء">
+                    <button class="btn-cancel" onclick="cancelBooking()"><i class="fas fa-trash"></i> إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ===== ADMIN SIDEBAR DASHBOARD ===== -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-dashboard" id="adminSidebar">
+    <div class="sidebar-header">
+        <h3><i class="fas fa-cogs"></i> لوحة الإدارة</h3>
+        <i class="fas fa-times close-sidebar" onclick="toggleSidebar()"></i>
+    </div>
+    <div class="sidebar-content">
+        <div class="admin-stat-cards">
+            <div class="admin-stat-card">
+                <h4 id="totalBookingsCount">0</h4>
+                <p>إجمالي الحجوزات</p>
+            </div>
+            <div class="admin-stat-card">
+                <h4 id="totalWaitlistCount">0</h4>
+                <p>في الانتظار</p>
+            </div>
+        </div>
+        <div class="admin-list-title">سجل الحجوزات الحديثة:</div>
+        <div id="adminBookingsList">
+            <div style="text-align:center; font-size:0.8rem; color:#889; margin-top:20px;">لا يوجد حجوزات حتى الآن.</div>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <button class="btn-export" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> تحميل التقرير (Excel)
+        </button>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div style="font-weight: 600;">للدعم الفني: sayedsedeek19@gmail.com</div>
+    <div class="footer-divider"></div>
+    <span>جميع الحقوق محفوظة © 2026 · كلية الهندسة</span>
+</footer>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <div id="modalIcon" class="modal-icon"></div>
+        <h2 id="modalTitle"></h2>
+        <p id="modalMsg"></p>
+        <div class="modal-btns" id="modalBtns"></div>
+    </div>
+</div>
+
+<!-- زر تثبيت التطبيق (يظهر فقط على الموبايل) -->
+<div id="installBtn" style="display:none; position:fixed; bottom:90px; left:20px; z-index:9998; background:linear-gradient(135deg,#001f4d,#003080); color:white; padding:12px 20px; border-radius:50px; font-family:'Cairo'; font-weight:700; font-size:0.85rem; align-items:center; gap:8px; box-shadow:0 4px 20px rgba(0,31,77,0.4); cursor:pointer; border:1px solid rgba(201,168,76,0.5);">
+    <i class="fas fa-download"></i> تثبيت كتطبيق
+</div>
+
+<!-- Chatbot -->
+<div class="chat-widget">
+    <div class="chat-btn" onclick="toggleChat()"><i class="fas fa-robot"></i></div>
+    <div class="chat-win" id="chatWindow">
+        <div class="chat-hdr">
+            <div><i class="fas fa-robot"></i> مساعد هندسة</div>
+            <i class="fas fa-times" onclick="toggleChat()" style="cursor:pointer;"></i>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+            <div class="msg bot-msg">أهلاً يا هندسة! كيف أقدر أساعدك؟</div>
+        </div>
+        <div class="chat-opts">
+            <button class="opt-btn" onclick="processChat('إزاي أحجز؟')">إزاي أحجز؟</button>
+            <button class="opt-btn" onclick="processChat('المواعيد')">المواعيد</button>
+            <button class="opt-btn" onclick="processChat('المطورين')">الفريق</button>
+        </div>
+        <div class="chat-foot">
+            <input type="text" id="chatInput" placeholder="اكتب سؤالك..." onkeypress="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ----- Dark Mode -----
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const icon = document.getElementById('themeIcon');
+    icon.className = document.body.classList.contains('dark-mode') ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+// ----- Sidebar Admin Dashboard -----
+function toggleSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.style.display = 'none';
+    } else {
+        sidebar.classList.add('open');
+        overlay.style.display = 'block';
+        updateAdminDashboard();
+    }
+}
+
+function updateAdminDashboard() {
+    // ── 1. تحديث الـ sidebar الداخلي في صفحة اليوزر ──
+    const countEl = document.getElementById('totalBookingsCount');
+    const waitEl  = document.getElementById('totalWaitlistCount');
+    if (countEl) countEl.innerText = bookingsDB.filter(b => b.Status === 'Confirmed').length;
+    if (waitEl)  waitEl.innerText  = bookingsDB.filter(b => b.Status === 'Waiting List').length;
+    const listContainer = document.getElementById('adminBookingsList');
+    if (listContainer) {
+        if (bookingsDB.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center;font-size:0.8rem;color:#889;margin-top:20px;">لا توجد حجوزات.</div>';
+        } else {
+            listContainer.innerHTML = [...bookingsDB].reverse().map(b => `
+                <div class="admin-booking-item">
+                    <div><b>${b.Name}</b> (كود: ${b.ID})</div>
+                    <div style="display:flex;justify-content:space-between;margin-top:5px;">
+                        <span style="color:var(--danger);">${b.Lab} [${b.Device}]</span>
+                        <span style="color:${b.Status==='Confirmed'?'var(--success)':'var(--waiting)'};font-weight:bold;">
+                            ${b.Status==='Confirmed'?'مؤكد':'انتظار'}
+                        </span>
+                    </div>
+                </div>`).join('');
+        }
+    }
+    // ── 2. مزامنة صفحة الأدمن عبر localStorage + BroadcastChannel ──
+    localStorage.setItem('adminBookings', JSON.stringify(bookingsDB));
+    localStorage.setItem('adminBookings_updated', Date.now().toString());
+    try {
+        const bc = new BroadcastChannel('lab_booking_sync');
+        bc.postMessage({ type: 'booking_update', data: bookingsDB, ts: Date.now() });
+        bc.close();
+    } catch(e) {}
+}
+
+// ===== localStorage Persistence =====
+const STORAGE_KEY = 'capitalUni_bookingsDB';
+const LABS_KEY    = 'capitalUni_labsState';
+const STUDENT_KEY = 'capitalUni_lastStudent';
+
+function saveData() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(bookingsDB));
+        // حفظ حالة المعامل (عدد الحجوزات الحالية)
+        const labsState = allLabs.map(l => ({ id: l.id, current: l.current }));
+        localStorage.setItem(LABS_KEY, JSON.stringify(labsState));
+    } catch(e) { console.error('Save error:', e); }
+}
+
+function loadData() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) bookingsDB = JSON.parse(stored);
+        const labsState = localStorage.getItem(LABS_KEY);
+        if (labsState) {
+            const states = JSON.parse(labsState);
+            states.forEach(s => {
+                const lab = allLabs.find(l => l.id === s.id);
+                if (lab) lab.current = s.current;
+            });
+        }
+    } catch(e) { console.error('Load error:', e); }
+}
+
+function saveLastStudent(name, id, phone) {
+    try {
+        localStorage.setItem(STUDENT_KEY, JSON.stringify({ name, id, phone }));
+    } catch(e) {}
+}
+
+function loadLastStudent() {
+    try {
+        const s = localStorage.getItem(STUDENT_KEY);
+        if (!s) return;
+        const { name, id, phone } = JSON.parse(s);
+        if (name) document.getElementById('stdName').value = name;
+        if (id)   document.getElementById('stdID').value   = id;
+        if (phone) document.getElementById('stdPhone').value = phone;
+        // إظهار لوحة الطالب لو عنده حجوزات
+        if (id && name) updateDashboard(id, name);
+    } catch(e) {}
+}
+
+// ----- Data -----
+let bookingsDB = [];
+const MAX_CAPACITY = 20;
+
+const labIcons = { "فيزياء": "⚡", "كيمياء": "🧪", "برمجة": "💻", "كهرباء": "🔌", "إلكترونيات": "📡", "واتصالات": "📡", "آلات": "⚙️", "ميكانيكا": "🔧", "خرسانة": "🏗️" };
+function getLabIcon(name) { for (const [k, i] of Object.entries(labIcons)) { if (name.includes(k)) return i; } return "🔬"; }
+
+const allLabs = [
+    { id: 1, name: "معمل الفيزياء العام", year: "prep", dept: "general", time: "08:30 - 10:30", current: 0 },
+    { id: 2, name: "معمل الكيمياء الهندسي", year: "prep", dept: "general", time: "11:00 - 13:00", current: 5 },
+    { id: 3, name: "معمل برمجة C++", year: "1", dept: "cse", time: "09:00 - 11:00", current: 0 },
+    { id: 4, name: "معمل أساسيات الكهرباء", year: "1", dept: "elec", time: "12:00 - 14:00", current: 0 },
+    { id: 5, name: "معمل إلكترونيات واتصالات", year: "2", dept: "comm", time: "08:30 - 10:30", current: 0 },
+    { id: 6, name: "معمل آلات وقوى كهربائية", year: "2", dept: "power", time: "10:30 - 12:30", current: 0 },
+    { id: 7, name: "معمل ميكانيكا الآلات", year: "2", dept: "mech", time: "13:00 - 15:00", current: 0 },
+    { id: 8, name: "معمل خرسانة ومواد", year: "2", dept: "civil", time: "09:00 - 11:00", current: 0 }
+];
+
+let currentFilteredLabs = [];
+
+function updateDepts() {
+    const y = document.getElementById('stdYear').value;
+    const dg = document.getElementById('deptGroup');
+    const sd = document.getElementById('stdDept');
+    dg.style.display = y ? "block" : "none";
+    if (y === "prep") sd.innerHTML = '<option value="general">القسم العام</option>';
+    else if (y === "1") sd.innerHTML = '<option value="">— اختر القسم —</option><option value="cse">💻 حاسبات</option><option value="elec">🔌 كهرباء</option>';
+    else if (y === "2") sd.innerHTML = '<option value="">— اختر القسم —</option><option value="comm">📡 اتصالات</option><option value="power">⚡ قوى</option><option value="mech">🔧 ميكانيكا</option><option value="civil">🏗️ مدني</option>';
+    filterLabs();
+}
+
+function filterLabs() {
+    const y = document.getElementById('stdYear').value;
+    const d = document.getElementById('stdDept').value;
+    const lw = document.getElementById('labsWrap');
+    document.getElementById('searchLabInput').value = '';
+    if (!y || !d) { lw.style.display = "none"; return; }
+    lw.style.display = "block";
+    currentFilteredLabs = allLabs.filter(l => l.year === y && l.dept === d);
+    renderLabs(currentFilteredLabs);
+}
+
+function searchLabs() {
+    const term = document.getElementById('searchLabInput').value.toLowerCase();
+    renderLabs(currentFilteredLabs.filter(l => l.name.toLowerCase().includes(term)));
+}
+
+function renderLabs(labsArray) {
+    document.getElementById('labsCount').textContent = labsArray.length + ' معمل';
+    document.getElementById('labsList').innerHTML = labsArray.map(l => {
+        const isFull = l.current >= MAX_CAPACITY;
+        const pct = Math.min(100, Math.round((l.current / MAX_CAPACITY) * 100));
+        return `
+        <div class="lab-tile ${isFull ? 'full' : ''}" onclick="handleBooking('${l.name}', ${isFull})">
+            <div class="lab-icon">${getLabIcon(l.name)}</div>
+            <div class="lab-info">
+                <div class="lab-name">${l.name}</div>
+                <div class="lab-time"><i class="fas fa-clock"></i> ${l.time}</div>
+                <div class="lab-progress-bar"><div class="lab-progress-fill" style="width:${pct}%"></div></div>
+                <div class="lab-capacity">${l.current} / ${MAX_CAPACITY} أجهزة محجوزة</div>
+            </div>
+            <div class="lab-status">
+                <div class="status-badge ${isFull ? 'badge-waiting' : 'badge-available'}">${isFull ? '⏳ انتظار' : '✅ متاح'}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ----- Modal & WhatsApp (Direct Link) -----
+function showModal(type, title, msg, callback = null, customBtnHTML = null) {
+    const overlay = document.getElementById('modalOverlay'), icon = document.getElementById('modalIcon'), btns = document.getElementById('modalBtns');
+    document.getElementById('modalTitle').innerText = title; document.getElementById('modalMsg').innerText = msg;
+    
+    if (type === 'warning') {
+        icon.className = 'modal-icon warning'; icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        btns.innerHTML = `<button class="btn-m btn-navy" onclick="closeModal()">فهمت</button>`;
+    } else if (type === 'confirm') {
+        icon.className = 'modal-icon confirm'; icon.innerHTML = '<i class="fas fa-question-circle"></i>';
+        btns.innerHTML = `<button class="btn-m btn-navy" id="confirmBtn">تأكيد</button><button class="btn-m btn-gray" onclick="closeModal()">تراجع</button>`;
+        document.getElementById('confirmBtn').onclick = callback;
+    } else if (type === 'success') {
+        icon.className = 'modal-icon success'; icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        btns.innerHTML = (customBtnHTML ? customBtnHTML : '') + `<button class="btn-m btn-navy" onclick="closeModal()">تم ✓</button>`;
+    }
+    overlay.style.display = 'flex';
+}
+function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+function getGoogleCalendarLink(labName, dateStr, timeStr) {
+    const [start, end] = timeStr.split('-').map(t => t.trim());
+    const formatTime = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const startDate = new Date(`${dateStr}T${start}:00`);
+    const endDate = new Date(`${dateStr}T${end}:00`);
+    if (isNaN(startDate.getTime())) return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('حجز ' + labName)}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('حجز ' + labName)}&dates=${formatTime(startDate)}/${formatTime(endDate)}&details=${encodeURIComponent('حجز معمل في كلية الهندسة')}`;
+}
+
+// ===== UltraMsg WhatsApp API =====
+const ULTRA_INSTANCE = 'instance173390';
+const ULTRA_TOKEN    = '0qvnjxai4jhyhp6c';
+
+function formatPhone(raw) {
+    let p = raw.replace(/\D/g, '');
+    if (p.startsWith('0')) p = '2' + p;
+    if (!p.startsWith('20')) p = '20' + p;
+    return p;
+}
+
+async function sendViaUltraMsg(phone, message) {
+    const p = formatPhone(phone);
+    const url = `https://api.ultramsg.com/${ULTRA_INSTANCE}/messages/chat`;
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ token: ULTRA_TOKEN, to: p, body: message })
+        });
+    } catch(e) { console.error('UltraMsg error:', e); }
+}
+
+// إرسال رسالة ترحيب تلقائياً فور إدخال رقم صحيح
+let autoWaTimer = null;
+function autoSendWhatsApp(val) {
+    clearTimeout(autoWaTimer);
+    const digits = val.replace(/\D/g, '');
+    if (digits.length < 11) return;
+    const name = document.getElementById('stdName').value.trim();
+    const id   = document.getElementById('stdID').value.trim();
+    if (!name || !id) return;
+    autoWaTimer = setTimeout(() => {
+        const msg = `🎓 *نظام حجز المعامل - جامعة العاصمة*\nأهلاً بك يا ${name}! 👋\nكود الطالب: ${id}\nتم استلام رقمك بنجاح ✅\nيمكنك الآن اختيار المعمل وإتمام الحجز.`;
+        sendViaUltraMsg(digits, msg);
+    }, 800);
+}
+
+function sendWhatsApp(phone, name, id, labName, device, labDate, labTime, status) {
+    const msg = `🎓 *نظام حجز المعامل*\nالاسم: ${name}\nالكود: ${id}\nالمعمل: ${labName}\nرقم الجهاز: PC-${device}\nالتاريخ: ${labDate}\nالميعاد: ${labTime}\nالحالة: ${status === 'Waiting List' ? '⏳ انتظار' : '✅ مؤكد'}`;
+    sendViaUltraMsg(phone, msg);
+}
+
+// ----- Core Logic & Student Dashboard -----
+function handleBooking(labName, isFull) {
+    const name = document.getElementById('stdName').value.trim();
+    const id = document.getElementById('stdID').value.trim();
+    const phone = document.getElementById('stdPhone').value.trim();
+    const date = document.getElementById('bookingDate').value;
+
+    if (!name || !id) {
+        showModal('warning', 'بيانات ناقصة', 'يا هندسة، لازم تكتب اسمك الرباعي وكود الطالب الأول.');
+        return;
+    }
+    if (!phone || phone.replace(/\D/g,'').length < 10) {
+        showModal('warning', 'رقم الموبايل', 'يا هندسة، أدخل رقم موبايلك الصح علشان نبعتلك تأكيد الحجز على واتساب.');
+        return;
+    }
+    if (!date) {
+        showModal('warning', 'تاريخ الحجز', 'يا هندسة، يرجى اختيار تاريخ الحجز أولاً.');
+        return;
+    }
+    
+    if (bookingsDB.find(b => b.ID === id && b.Lab === labName)) return showModal('warning', 'حجز مسبق', 'أنت حاجز بالفعل في هذا المعمل.');
+
+    showModal('confirm', isFull ? 'قائمة الانتظار' : 'تأكيد الحجز', `تأكيد الحجز في ${labName} يوم ${date}؟`, () => {
+        const lab = allLabs.find(l => l.name === labName);
+        const status = isFull ? 'Waiting List' : 'Confirmed';
+        
+        const deviceNumber = lab.current + 1;
+        
+        bookingsDB.push({ Name: name, ID: id, Phone: phone, Lab: labName, Date: date, Time: lab.time, Device: `PC-${deviceNumber}`, Status: status });
+        if (lab) lab.current++;
+        saveData();
+        saveLastStudent(name, id, phone);
+        filterLabs(); 
+        updateDashboard(id, name);
+        updateAdminDashboard(); // تحديث لوحة الإدارة الجانبية
+        
+        const calLink = getGoogleCalendarLink(labName, date, lab.time);
+        const calBtn = `<a href="${calLink}" target="_blank" class="btn-m btn-calendar"><i class="fas fa-calendar-plus"></i> إضافة لتقويم جوجل</a>`;
+        
+        showModal('success', 'تم بنجاح', `تم تسجيلك في ${labName} وإعطائك جهاز رقم PC-${deviceNumber}.`, null, calBtn);
+        
+        // إرسال رسالة الحجز عبر UltraMsg مباشرة
+        sendWhatsApp(phone, name, id, labName, deviceNumber, date, lab.time, status);
+    });
+}
+
+function updateDashboard(studentID, studentName) {
+    const dash = document.getElementById('studentDashboard');
+    const studentBookings = bookingsDB.filter(b => b.ID === studentID);
+    if (studentBookings.length === 0) { dash.style.display = 'none'; return; }
+    
+    dash.style.display = 'block';
+    document.getElementById('dashName').innerText = studentName;
+    document.getElementById('dashID').innerText = `كود: ${studentID}`;
+    
+    document.getElementById('dashBookingsList').innerHTML = studentBookings.map(b => `
+        <div class="dash-item">
+            <div class="dash-item-info">
+                <div class="dash-item-name">${b.Lab}</div>
+                <div class="dash-item-device"><i class="fas fa-desktop"></i> رقم الجهاز: ${b.Device}</div>
+                <div class="dash-item-date"><i class="far fa-calendar-alt"></i> ${b.Date} | <i class="far fa-clock"></i> ${b.Time}</div>
+            </div>
+            <div class="status-badge ${b.Status === 'Waiting List' ? 'badge-waiting' : 'badge-available'}">
+                ${b.Status === 'Waiting List' ? '⏳ انتظار' : '✅ مؤكد'}
+            </div>
+        </div>`).join('');
+}
+
+function cancelBooking() {
+    const id = document.getElementById('cancelID').value.trim();
+    if (!id) return showModal('warning', 'تنبيه', 'أدخل الكود للإلغاء');
+    const index = bookingsDB.findIndex(b => b.ID === id);
+    if (index !== -1) {
+        showModal('confirm', 'إلغاء', `إلغاء حجزك في ${bookingsDB[index].Lab}؟`, () => {
+            const lab = allLabs.find(l => l.name === bookingsDB[index].Lab);
+            if (lab && lab.current > 0) lab.current--;
+            const studentName = bookingsDB[index].Name;
+            bookingsDB.splice(index, 1);
+            saveData();
+            filterLabs(); 
+            updateDashboard(id, studentName);
+            updateAdminDashboard(); // تحديث لوحة الإدارة الجانبية
+            showModal('success', 'تم الإلغاء', 'تم إلغاء الحجز بنجاح.');
+            document.getElementById('cancelID').value = '';
+        });
+    } else showModal('warning', 'خطأ', 'لا يوجد حجز بهذا الكود.');
+}
+
+// ----- إصلاح وتطوير زر تحميل الإكسيل -----
+function exportToExcel() {
+    if (bookingsDB.length === 0) { 
+        showModal('warning', 'فارغ', 'لا يوجد بيانات حجوزات حالياً لتحميلها.');
+        return; 
+    }
+    
+    // تحضير البيانات ليكون شكل الإكسيل بالعربي وممتاز
+    const excelData = bookingsDB.map(b => ({
+        "اسم الطالب": b.Name,
+        "كود الطالب": b.ID,
+        "رقم الموبايل": b.Phone,
+        "المعمل المحجوز": b.Lab,
+        "رقم الجهاز": b.Device,
+        "تاريخ الحجز": b.Date,
+        "وقت المعمل": b.Time,
+        "حالة الحجز": b.Status === 'Confirmed' ? 'مؤكد' : 'قائمة انتظار'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "سجل الحجوزات");
+    XLSX.writeFile(wb, "كشف_المعامل.xlsx");
+}
+
+// ----- Chatbot -----
+function toggleChat() { const w = document.getElementById('chatWindow'); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
+function processChat(u) {
+    addMsg(u, 'user'); let r = "تواصل مع الدعم الفني للمزيد من المساعدة.";
+    if (u.includes("حجز")) r = "للحجز: سجل بياناتك وتاريخ اليوم، اختر القسم، واضغط على المعمل المتاح.";
+    else if (u.includes("مواعيد")) r = "المعامل تفتح 08:30 ص وتغلق 03:00 م.";
+    else if (u.includes("مطور") || u.includes("فريق")) r = `<b>فريق التطوير:</b><ul class="dev-list"><li class="dev-item"><i class="fas fa-terminal"></i> م. سيد صديق</li><li class="dev-item"><i class="fas fa-terminal"></i> م. عبد الله</li><li class="dev-item"><i class="fas fa-terminal"></i> م. عمر</li></ul>`;
+    setTimeout(() => addMsg(r, 'bot'), 500);
+}
+function addMsg(t, s) { const m = document.getElementById('chatMsgs'), d = document.createElement('div'); d.className = `msg ${s}-msg`; d.innerHTML = t; m.appendChild(d); m.scrollTop = m.scrollHeight; }
+function sendMsg() { const i = document.getElementById('chatInput'); if (i.value.trim()) { processChat(i.value); i.value = ''; } }
+
+// ===== تهيئة التطبيق عند الفتح =====
+window.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    loadLastStudent();
+    updateAdminDashboard();
+    // تسجيل Service Worker للـ PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => console.log('✅ Service Worker registered'))
+            .catch(e => console.log('SW error:', e));
+    }
+    // زر تثبيت التطبيق
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtn = document.getElementById('installBtn');
+        if (installBtn) {
+            installBtn.style.display = 'flex';
+            installBtn.addEventListener('click', () => {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    installBtn.style.display = 'none';
+                    deferredPrompt = null;
+                });
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>
